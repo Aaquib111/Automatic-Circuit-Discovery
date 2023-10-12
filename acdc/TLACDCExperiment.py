@@ -167,6 +167,7 @@ class TLACDCExperiment:
         self.threshold = threshold
         self.num_passes = 0
         self.run_name = run_name
+        self.edge_attrs = {}
         self.save_graphs_after = save_graphs_after
         
         assert self.ref_ds is not None or self.zero_ablation, "If you're doing random ablation, you need a ref ds"
@@ -524,7 +525,12 @@ class TLACDCExperiment:
 
         return True
 
-
+    def replace_parens(self, tup):
+        '''
+            Method to standardize the TorchIndex of components to a string
+        '''
+        return str(tup).replace('(', '[').replace(')', ']').replace('[None,]', '[None]').replace('None', ':')
+        
     def step(self, early_stop=False, testing=False):
         if self.current_node is None:
             return
@@ -567,6 +573,7 @@ class TLACDCExperiment:
 
             for sender_index in sender_indices_list:
                 edge = self.corr.edges[self.current_node.name][self.current_node.index][sender_name][sender_index]
+                edge_name = f'{self.current_node.name}{self.replace_parens(self.current_node.index)}{sender_name}{self.replace_parens(sender_index)}'
                 cur_parent = self.corr.graph[sender_name][sender_index]
 
                 if edge.edge_type == EdgeType.PLACEHOLDER:
@@ -608,7 +615,7 @@ class TLACDCExperiment:
 
                 result = evaluated_metric - old_metric
                 edge.effect_size = result
-
+                self.edge_attrs[edge_name] = result
                 if self.verbose:
                     print("Result is", result, end="")
 
